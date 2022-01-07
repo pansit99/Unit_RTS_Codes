@@ -1,0 +1,146 @@
+/* Script for player controlled, common soldier object
+   Movement, Animation updates, receiving orders from main controller
+*/
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class soldier_script : MonoBehaviour
+{
+    public GameObject[] actions;
+    public Vector3 moveToPosition;
+    public float rotationSpeed;
+    public float moveSpeed;
+
+    private float currentMoveSpeed;
+    private Quaternion currentRotation;
+
+    private Vector3 lastPlayerPosition;
+    private Quaternion lastPlayerRotation;
+    private float moveToTargetAccuracy;
+
+    private Animator animator;
+    public Rigidbody collisionCapsule; 
+    public bool isOnCollision;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        AssignConstants();
+    }
+
+    void AssignConstants()
+    {
+        animator = GetComponent<Animator>();
+        moveToTargetAccuracy = 0.5f;
+        isOnCollision = false;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        ScanForActions();
+        MoveTo();
+        ReadPlayerMetrics();
+        UpdateAnimation();
+    }
+
+    void LateUpdate()
+    {
+    }
+
+    void ScanForActions()
+    {
+        actions = GameObject.FindGameObjectsWithTag("Action");
+    }
+
+    /*
+    void GoToActionLocation()
+    {
+        GameObject currentAction = null;
+        //Look For Actions
+        if(actions.Length > 0)
+        {
+            for (int i = actions.Length - 1; i >= 0; i--)
+            {
+                if (actions[i])
+                {
+                    currentAction = actions[i];
+                }
+            }
+        }
+        else
+        {
+            return;
+        }
+
+        Vector3 actionLocation = currentAction.transform.position;
+
+        //Look At
+        Vector3 lookAtDirection = new Vector3(actionLocation.x, 0, actionLocation.z)
+                                - new Vector3(this.transform.position.x, 0 , this.transform.position.z);
+        Quaternion lookAtDirectionQuaternion = Quaternion.LookRotation(lookAtDirection);
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookAtDirectionQuaternion, rotationSpeed * Time.deltaTime);
+
+        //Go To
+        if(Vector3.Distance(actionLocation, transform.position) >= moveToTargetAccuracy && currentAction && isOnCollision == false)
+        {
+            transform.Translate(0, 0, moveSpeed * Time.deltaTime);
+        }
+        else
+        {
+            Destroy(currentAction);
+        }
+            
+    }
+    */
+
+    void MoveTo()
+    {
+        //Look At
+        Vector3 lookAtDirection = new Vector3(moveToPosition.x, 0, moveToPosition.z)
+                                - new Vector3(this.transform.position.x, 0, this.transform.position.z);
+        Quaternion lookAtDirectionQuaternion = Quaternion.LookRotation(lookAtDirection);
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookAtDirectionQuaternion, rotationSpeed * Time.deltaTime);
+
+        //Go To
+        if (Vector3.Distance(moveToPosition, transform.position) >= moveToTargetAccuracy && isOnCollision == false)
+        {
+            transform.Translate(0, 0, moveSpeed * Time.deltaTime);
+        }
+    }
+
+    public void setMoveToPosition(Vector3 movetoPosition)
+    {
+        moveToPosition = new Vector3(movetoPosition.x, movetoPosition.y, movetoPosition.z);
+        //Debug.Log(moveToPosition.ToString());
+    }
+
+    void ReadPlayerMetrics()
+    {
+        //Forward Movement
+        currentMoveSpeed = (this.transform.position - lastPlayerPosition).magnitude / Time.deltaTime;
+
+        //Rotation Rate
+
+
+        //Record from last frame
+        lastPlayerPosition = this.transform.position;
+
+    }
+
+    void UpdateAnimation()
+    {
+        animator.SetFloat("forward_movement", currentMoveSpeed);
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.tag == "collisionCapsule")
+        {
+            Debug.Log(collision.gameObject.tag);
+            isOnCollision = true;
+        }
+    }
+}
