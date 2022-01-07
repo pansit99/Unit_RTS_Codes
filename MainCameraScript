@@ -1,0 +1,165 @@
+/* Script for main controller, including camera, object interactions and GUI
+    January 7, 2021
+*/
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+/* Manage Key inputs within Unity
+ * Edit > Project Settings > Input Manager
+ * 
+ */
+
+
+public class MainCameraScript : MonoBehaviour
+{
+    [SerializeField]
+    public float CameraMovementSpeed;
+    public float CameraZoomSpeed;
+    public float CameraZoomMax;
+    public float CameraZoomMin;
+    public float CameraRotateSpeed;
+
+    public GameObject goToSphere;
+    public GameObject selectedUnits;
+    public GameObject unSelectedUnits;
+
+    Quaternion DefaultCameraRotation;
+
+    void Start()
+    {
+        AssignConstants();
+    }
+
+    void Update()
+    {
+        
+    }
+
+    void LateUpdate()
+    {
+        CameraMovement();
+        CameraZoomChange();
+        CameraRotate();
+        CameraReset();
+        MoveAction();
+    }
+
+    void AssignConstants()
+    {
+        DefaultCameraRotation = Quaternion.Euler(45, -45, 0);
+        selectedUnits = GameObject.Find("PlayerOwnedSelected");
+        unSelectedUnits = GameObject.Find("PlayerOwnedUnSelected");
+    }
+
+    void CameraMovement()
+    {
+        float CameraMovementVertical = 0f;
+        float CameraMovementHorizontal = 0f;
+
+        if (Input.GetAxis("CameraMoveUp") > 0)
+            CameraMovementVertical = CameraMovementSpeed * Time.deltaTime;
+        if (Input.GetAxis("CameraMoveDown") > 0)
+            CameraMovementVertical = CameraMovementSpeed * Time.deltaTime * -1.0f;
+        if (Input.GetAxis("CameraMoveLeft") > 0)
+            CameraMovementHorizontal = CameraMovementSpeed * Time.deltaTime * -1.0f;
+        if (Input.GetAxis("CameraMoveRight") > 0)
+            CameraMovementHorizontal = CameraMovementSpeed * Time.deltaTime;
+
+        Vector3 CameraMovement = new Vector3(CameraMovementHorizontal, CameraMovementVertical, CameraMovementVertical);
+        this.transform.Translate(CameraMovement);
+
+    }
+
+    void CameraZoomChange()
+    {
+        float CameraZoomMotion = 0f;
+        CameraZoomMotion = Input.GetAxis("CameraZoom") * Time.deltaTime * CameraZoomSpeed;
+        if(CameraZoomMotion > 0f && this.transform.position.y  >= CameraZoomMin)
+        {
+            this.transform.Translate(new Vector3(0, 0, CameraZoomMotion));
+        }
+        if (CameraZoomMotion < 0f && this.transform.position.y <= CameraZoomMax)
+        {
+            this.transform.Translate(new Vector3(0, 0, CameraZoomMotion));
+        }
+    }
+
+    
+    void CameraRotate()
+    {
+        float CameraRotateMotion;
+        CameraRotateMotion = Input.GetAxis("CameraRotate") * Time.deltaTime * CameraRotateSpeed;
+        this.transform.Rotate(0, CameraRotateMotion, 0, Space.World);
+    }
+
+    void CameraReset()
+    {
+        if (Input.GetAxis("CameraReset") != 0)
+        {
+            this.transform.rotation = DefaultCameraRotation;
+        }
+    }
+
+    void MoveAction()
+    {
+        
+        //Create a raycast and set it to the mouse cursor position in game
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+        if(Physics.Raycast(ray, out hit))
+        {
+            //Draw invisible ray
+            Debug.DrawLine(ray.origin, hit.point, Color.red);
+
+            //On Left Click
+            if (Input.GetMouseButtonDown(0))
+            {
+                // If a soldier is selected
+                if(hit.transform.tag == "player_owned")
+                {
+                    hit.transform.SetParent(selectedUnits.transform);
+                }
+                else if (hit.transform.tag != "player_owned")
+                {
+                    ClearSelectedObjects();
+                }
+            }
+
+            //On Right Click
+            if (Input.GetMouseButtonDown(1))
+            {
+                GameObject selectedUnit;
+                int selectedUnitCount = selectedUnits.transform.childCount;
+                // Create a go-to action sphere if floor is selected
+                if (hit.transform.tag == "floor")
+                {
+                    //Instantiate(goToSphere, hit.point, Quaternion.identity);
+                    for(int i = 0; i < selectedUnitCount; i++)
+                    {
+                        selectedUnit = selectedUnits.transform.GetChild(i).gameObject;
+                        selectedUnit.GetComponent<soldier_script>().setMoveToPosition(hit.point + new Vector3(i, 0, i));
+                        Debug.Log(hit.transform.position);
+                    }
+
+                }
+            }
+        }
+    }
+
+    void ClearSelectedObjects()
+    {
+        GameObject child;
+        int childcount = selectedUnits.transform.childCount;
+        if (childcount > 0)
+        {
+            for (int i = 0; i < childcount; i++)
+            {
+                child = selectedUnits.transform.GetChild(0).gameObject;
+                child.transform.SetParent(unSelectedUnits.transform);
+            }
+        }
+    }
+
+}
